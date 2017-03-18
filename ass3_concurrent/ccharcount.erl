@@ -1,41 +1,47 @@
 -module (ccharcount).
--export ([load/1,count/3,go/2,join/2,split/2,goSpawn/2, countsplit/1]).
+-export ([main/1,load/2,count/3,go/2,join/2,split/2,goSpawn/2, countsplit/2]).
 %"Create function that joins the lists"
 %"Spawn that and pass it's pid to each of the counter processes"
 %example 3 in video/sides is cooool goshake
 
+main(F) -> {ok,Bin} = file:read_file(F),
+   List=binary_to_list(Bin),
+   Length=round(length(List)/20),
+   Ls=string:to_lower(List),
+   Sl=split(Ls,Length),
+   load(Sl,length(List)/20).
 
 goSpawn(CountSplitPid,[]) -> atomd;
 goSpawn(CountSplitPid,[H|T]) ->
 spawn(ccharcount,go, [CountSplitPid,H]),
 goSpawn(CountSplitPid,T).
 
-
-load(F)->
-{ok, Bin} = file:read_file(F),
-   List=binary_to_list(Bin),
-   Length=round(length(List)/20),
-   Ls=string:to_lower(List),
-   Sl=split(Ls,Length),
-   io:fwrite("LOaded and Split~n"),
-   %Result=countsplit(Sl,[]).
-   CountSplitPid=spawn(ccharcount,countsplit,[[]]),
-   goSpawn(CountSplitPid, Sl).
+load(List, Length) when Length < 1 ->io:fwrite("Give Longer File Please~n");
+load(List, Length)->
+   io:fwrite("Loaded and Split~n"),
+   CountSplitPid=spawn(ccharcount,countsplit,[[],0]),
+   goSpawn(CountSplitPid, List).
 % Result.
- 
-%countsplit([])->[];
-countsplit(R)->
- %Ul=shake:sort(Sl),
+
+%PATTERN MATCHED PRINT AT END
+countsplit(R,20)->
   receive
  	{List} ->
  		R2 = join(R, List),
  		io:fwrite(" ~p~n", [R2]),
- 		countsplit(R2);
+ 		countsplit(R2,20+1);
+ 	_Other -> {error, unknown}
+ end;
+ 
+%countsplit([])->[];
+countsplit(R,N)->
+  receive
+ 	{List} ->
+ 		R2 = join(R, List),
+ 		%io:fwrite(" ~p~n", [R2]),
+ 		countsplit(R2,N+1);
  	_Other -> {error, unknown}
  end.
- %Result=go(H),
- %R2=join(R,Result),
- %countsplit(T,R2).
 
 join([],[])->[];
 join([],R)->R;
